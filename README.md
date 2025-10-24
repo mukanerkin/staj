@@ -33,7 +33,7 @@ Proje, CodeIgniter 4, MySQL veritabanı ve Tabler UI arayüz kütüphanesi kulla
 - **Park Kayıtları (ParkingLogs)**: Giriş ve çıkış işlemleri, hangi iş emrine (work order) bağlı oldukları; retrieve/approve işlemleri.
 - **İş Emirleri (WorkOrders)**: Vale tarafından gerçekleştirilen “park” veya “retrieve” tipindeki emirler; oluşturma ve kapama (WorkOrderModel).
 - **Personel Yönetimi (Staffs)**: Kullanıcı (personel) ekleme/düzenleme, rol atamaları (ör. valet).
-Müşteri & Araç Yönetimi (Customers, Vehicles): Müşteri ve araç kayıtları, araç-şasi ilişkisi CustomerVehicle.
+- **Müşteri & Araç Yönetimi (Customers, Vehicles)**: Müşteri ve araç kayıtları, araç-şasi ilişkisi CustomerVehicle.
 - **Sistem Ayarları (Settings)**: SystemSetting entity ile ayarlar; örn. vale_max_distance, free_parking_signage, pricing_hourlyRate.
 - **İstatistikler (StatsLib + app/Libraries/Stats/*)**: Park doluluk oranları ve temel metrikler (Dashboard üzerinde ApexCharts ile görselleştirme).
 - **Veritabanı Yapısı (Özet)** Projede kullanılan başlıca tablolar ve önemli alanlar (entity/model dosyalarından ve modellerin allowedFields/joins’dan çıkartılmıştır):
@@ -45,6 +45,18 @@ Müşteri & Araç Yönetimi (Customers, Vehicles): Müşteri ve araç kayıtlar�
 >- customers: id, first_name, last_name, ...
 >- system_settings: key/name, value, description (ör. vale_max_distance, pricing_hourlyRate, free_parking_signage)
 **Not**: BaseModel içinde tablo isimleri kısa anahtarlar şeklinde (parking_lots, parking_logs, work_orders, vs.) tanımlanmış ve modeller bu tablo isimlerini kullanarak join sorguları oluşturuyor.
+
+## Kimlik Verileri ve Güvenlik (IdentityService) Projede müşterilerin kimlik / pasaport numaraları gibi hassas kimlik bilgileri şifreli olarak saklanmaktadır. Bu amaçla IdentityService.php içinde merkezi bir servis tanımlanmıştır. Servis, CodeIgniter’ın Config\Services::encrypter() servisini kullanır ve iki yardımcı metoda sahiptir:
+
+- `encryptIdentity(string $plain)`: string — düz metin kimlik numarasını alır, encrypter ile şifreler ve sonucu Base64 ile kodlayarak geri döndürür. Bu şekilde veritabanında saklanacak değerler düz okunamaz.
+- `decryptIdentity(string $cipher)`: string — veritabanından okunan Base64 kodlu şifreli değeri önce Base64 decode ile açar, sonra encrypter->decrypt ile orijinal düz metni geri çevirir.
+
+> Kullanım ve Saklama
+
+> Hassas kimlik verileri (örn. TC kimlik, pasaport numarası) kayıt sırasında IdentityService::encryptIdentity() ile şifrelenip veritabanındaki uygun alana yazılmalıdır. Okuma durumunda decryptIdentity() ile geri çözülür.
+> Servis, uygulamanın merkezi bir noktası olduğundan, şifreleme anahtarları ve algoritma CodeIgniter encrypter konfigürasyonuna bağlıdır; bu nedenle Encryption.php veya .env üzerinden anahtar yönetimi ve rotasyon politikaları uygulanmalıdır.
+> Log veya debug amaçlı asla ham kimlik bilgilerinin çıktı olarak yazdırılmaması önerilir. Debug işlemlerinde örneklenmiş veya maskelenmiş veriler kullanılmalıdır.
+
 
 ## Uygulama Akışı (Kullanıcı Senaryoları)
 - **Vale Görevi Oluşturma**: Yönetici/müşteri sistemi kullanarak bir iş emri (work order) oluşturur (`WorkOrders::create_order` rotası). Vale bu emri alıp uygulama üzerinden “park” veya “getir” komutunu tamamlar. İş emri kapatıldığında closed_at set edilir.
