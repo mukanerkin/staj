@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Order Book Depth</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { margin: 0; background: #111; }
+    #chart { width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+
+  <script>
+    const ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@depth20@100ms");
+
+    let bids = [];
+    let asks = [];
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      bids = data.bids.map(([p, q], i) => ({
+        price: parseFloat(p),
+        volume: parseFloat(q),
+        level: -i
+      }));
+      asks = data.asks.map(([p, q], i) => ({
+        price: parseFloat(p),
+        volume: parseFloat(q),
+        level: i
+      }));
+      drawChart();
+    };
+
+    function makeMesh(data, color) {
+      // Her emir için bir kutu/levha yapıyoruz
+      let x = [], y = [], z = [], iArr = [], jArr = [], kArr = [];
+      let count = 0;
+
+      data.forEach((d, idx) => {
+        const px = d.price;
+        const py = d.level;
+        const h = d.volume;
+
+        // Küçük bir dikdörtgen prizma (levha)
+        const dx = 5; // fiyat genişliği
+        const dy = 1; // seviye kalınlığı
+
+        let verts = [
+          [px - dx, py - dy, 0],
+          [px + dx, py - dy, 0],
+          [px + dx, py + dy, 0],
+          [px - dx, py + dy, 0],
+          [px - dx, py - dy, h],
+          [px + dx, py - dy, h],
+          [px + dx, py + dy, h],
+          [px - dx, py + dy, h],
+        ];
+
+        verts.forEach(v => {
+          x.push(v[0]); y.push(v[1]); z.push(v[2]);
+        });
+
+        let faces = [
+          [0,1,2],[0,2,3], // bottom
+          [4,5,6],[4,6,7], // top
+          [0,1,5],[0,5,4], // front
+          [1,2,6],[1,6,5], // right
+          [2,3,7],[2,7,6], // back
+          [3,0,4],[3,4,7]  // left
+        ];
+
+        faces.forEach(f => {
+          iArr.push(f[0]+count);
+          jArr.push(f[1]+count);
+          kArr.push(f[2]+count);
+        });
+
+        count += 8;
+      });
+
+      return {
+        type: 'mesh3d',
+        x, y, z,
+        i: iArr, j: jArr, k: kArr,
+        opacity: 0.9,
+        color: color,
+        flatshading: true
+      };
+    }
+
+    function drawChart() {
+      const bidMesh = makeMesh(bids, "green");
+      const askMesh = makeMesh(asks, "red");
+
+      const layout = {
+  scene: {
+    xaxis: { title: 'Price', color: '#ccc' },
+    yaxis: { title: 'Order Level', color: '#ccc' },
+    zaxis: { title: 'Volume', color: '#ccc' },
+    camera: {
+      eye: { x: 0.5, y: 0, z: 2 }, // fiyat seviyesinden hafif önden/derinliğe
+      center: { x: 0, y: 0, z: 0 },
+      up: { x: 0, y: 1, z: 0 }     // Y ekseni yukarı
+    }
+
+  },
+  paper_bgcolor: '#111',
+  plot_bgcolor: '#111',
+  showlegend: false
+};
+
+
+      Plotly.newPlot('chart', [bidMesh, askMesh], layout);
+    }
+  </script>
+</body>
+</html>
