@@ -46,13 +46,13 @@ Proje, CodeIgniter 4, MySQL veritabanı ve Tabler UI arayüz kütüphanesi kulla
 >- system_settings: key/name, value, description (ör. vale_max_distance, pricing_hourlyRate, free_parking_signage)
 **Not**: BaseModel içinde tablo isimleri kısa anahtarlar şeklinde (parking_lots, parking_logs, work_orders, vs.) tanımlanmış ve modeller bu tablo isimlerini kullanarak join sorguları oluşturuyor.
 
-## Kimlik Verileri ve Güvenlik (IdentityService) Projede müşterilerin kimlik / pasaport numaraları gibi hassas kimlik bilgileri şifreli olarak saklanmaktadır. Bu amaçla IdentityService.php içinde merkezi bir servis tanımlanmıştır. Servis, CodeIgniter’ın Config\Services::encrypter() servisini kullanır ve iki yardımcı metoda sahiptir:
+## Kimlik Verileri ve Güvenlik (IdentityService)
+Projede müşterilerin kimlik / pasaport numaraları gibi hassas kimlik bilgileri şifreli olarak saklanmaktadır. Bu amaçla IdentityService.php içinde merkezi bir servis tanımlanmıştır. Servis, CodeIgniter’ın Config\Services::encrypter() servisini kullanır ve iki yardımcı metoda sahiptir:
 
 - `encryptIdentity(string $plain)`: string — düz metin kimlik numarasını alır, encrypter ile şifreler ve sonucu Base64 ile kodlayarak geri döndürür. Bu şekilde veritabanında saklanacak değerler düz okunamaz.
 - `decryptIdentity(string $cipher)`: string — veritabanından okunan Base64 kodlu şifreli değeri önce Base64 decode ile açar, sonra encrypter->decrypt ile orijinal düz metni geri çevirir.
 
 > Kullanım ve Saklama
-
 > Hassas kimlik verileri (örn. TC kimlik, pasaport numarası) kayıt sırasında IdentityService::encryptIdentity() ile şifrelenip veritabanındaki uygun alana yazılmalıdır. Okuma durumunda decryptIdentity() ile geri çözülür.
 > Servis, uygulamanın merkezi bir noktası olduğundan, şifreleme anahtarları ve algoritma CodeIgniter encrypter konfigürasyonuna bağlıdır; bu nedenle Encryption.php veya .env üzerinden anahtar yönetimi ve rotasyon politikaları uygulanmalıdır.
 > Log veya debug amaçlı asla ham kimlik bilgilerinin çıktı olarak yazdırılmaması önerilir. Debug işlemlerinde örneklenmiş veya maskelenmiş veriler kullanılmalıdır.
